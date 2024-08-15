@@ -1,7 +1,7 @@
 package main
 
 import (
-	watcher2 "directoryWatcher/watcher"
+	watcher2 "directoryWatcher/pkg/watcher"
 	"flag"
 	"log"
 )

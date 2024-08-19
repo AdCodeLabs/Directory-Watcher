@@ -19,7 +19,7 @@ func newLocalWatcher() *LocalWatcher {
 	}
 }
 
-func (w *LocalWatcher) Watch(dirPath string, clients *map[*websocket.Conn]bool) {
+func (w *LocalWatcher) Watch(dirPath []string, clients *map[*websocket.Conn]bool) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatal(err)
@@ -31,9 +31,11 @@ func (w *LocalWatcher) Watch(dirPath string, clients *map[*websocket.Conn]bool) 
 		}
 	}(watcher)
 
-	err = watcher.Add(dirPath)
-	if err != nil {
-		log.Fatal(err)
+	for _, dir := range dirPath {
+		err = watcher.Add(dir)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	for {

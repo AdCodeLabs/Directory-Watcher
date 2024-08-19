@@ -5,11 +5,11 @@ import "github.com/gorilla/websocket"
 type HDFSWatcher struct {
 }
 
-func newHDFSWatcher() *S3Watcher {
-	return &S3Watcher{}
+func newHDFSWatcher() *HDFSWatcher {
+	return &HDFSWatcher{}
 }
 
-func (w *HDFSWatcher) Watch(dirPath string, clients *map[*websocket.Conn]bool) {
+func (w *HDFSWatcher) Watch(dirPath []string, clients *map[*websocket.Conn]bool) {
 
 }
 

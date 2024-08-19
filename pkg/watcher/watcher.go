@@ -4,29 +4,34 @@ import (
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 )
 
 // DirWatcher - an interface for directory watchers
 type DirWatcher interface {
-	Watch(dirPath string, clients *map[*websocket.Conn]bool)
+	Watch(dirPath []string, clients *map[*websocket.Conn]bool)
 	notifyClients(filename string, clients *map[*websocket.Conn]bool)
 }
 
 // Watcher - Main manager in application
 type Watcher struct {
-	server     *http.Server
-	upgrader   *websocket.Upgrader
-	dirWatcher DirWatcher
-	clients    map[*websocket.Conn]bool
+	server      *http.Server
+	upgrader    *websocket.Upgrader
+	dirWatcher  DirWatcher
+	clients     map[*websocket.Conn]bool
+	dirsToWatch []string
 
 	mu *sync.Mutex
 }
 
-func NewWatcher(watcherType string) (*Watcher, error) {
+func NewWatcher(watcherType string, dirPath string) (*Watcher, error) {
 	var dirWatcher DirWatcher
 	var mu sync.Mutex
+	dirsToWatch := make([]string, 0)
+
 	upgrader := &websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -38,21 +43,36 @@ func NewWatcher(watcherType string) (*Watcher, error) {
 		dirWatcher = newS3Watcher()
 	case "local":
 		dirWatcher = newLocalWatcher()
+
+		err := filepath.Walk(dirPath,
+			func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+				if info.IsDir() {
+					dirsToWatch = append(dirsToWatch, path)
+				}
+				return nil
+			})
+		if err != nil {
+			log.Println(err)
+		}
 	case "hdfs":
 		dirWatcher = newHDFSWatcher()
 	}
 
 	return &Watcher{
-		upgrader:   upgrader,
-		dirWatcher: dirWatcher,
-		clients:    make(map[*websocket.Conn]bool),
-		mu:         &mu,
-		server:     nil,
+		upgrader:    upgrader,
+		dirWatcher:  dirWatcher,
+		clients:     make(map[*websocket.Conn]bool),
+		mu:          &mu,
+		server:      nil,
+		dirsToWatch: dirsToWatch,
 	}, nil
 }
 
-func (wc *Watcher) Start(dirPath, serverIp string) {
-	go wc.dirWatcher.Watch(dirPath, &wc.clients)
+func (wc *Watcher) Start(serverIp string) {
+	go wc.dirWatcher.Watch(wc.dirsToWatch, &wc.clients)
 	log.Println("started watching the directory...")
 
 	http.HandleFunc("/", wc.handleFunc)

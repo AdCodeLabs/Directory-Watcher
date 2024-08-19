@@ -9,7 +9,7 @@ func newS3Watcher() *S3Watcher {
 	return &S3Watcher{}
 }
 
-func (w *S3Watcher) Watch(dirPath string, clients *map[*websocket.Conn]bool) {
+func (w *S3Watcher) Watch(dirPath []string, clients *map[*websocket.Conn]bool) {
 
 }
 
